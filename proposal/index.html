@@ -1,0 +1,193 @@
+<html>
+	<head>
+		<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=default'></script>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+		<style>
+			h1 {
+				text-align: center;
+			}
+
+			.container {
+				margin: 0 auto;
+				padding: 60px 20%;
+			}
+
+			figure {
+				text-align: center;
+			}
+
+			img {
+				display: inline-block;
+			}
+
+			body {
+				font-family: 'Inter', sans-serif;
+			}
+		</style>
+	</head>
+	<body>
+        <html>
+	<head>
+		<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=default'></script>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+		<style>
+			h1 {
+				text-align: center;
+			}
+
+			.container {
+				margin: 0 auto;
+				padding: 60px 20%;
+			}
+
+			figure {
+				text-align: center;
+			}
+
+			img {
+				display: inline-block;
+			}
+
+			body {
+				font-family: 'Inter', sans-serif;
+			}
+		</style>
+	</head>
+	<body>
+        <div class="container">
+            <h1>Mesh Morphing & Animation Toolkit</h1>
+            <div style="text-align: center;">Names: Brandon Lai, Tamnhi Vu, Samuel German, Tara Pande </div>
+
+            <br>
+
+            Link to webpage: <a href="https://blai57.github.io/proposal/index.html">blai57.github.io/proposal/index.html</a>
+
+            <br>
+                        
+            <p><strong>Summary</strong>: We will develop an interactive tool for 3D mesh deformation and animation, enabling
+                smooth transitions between shapes using Bézier-based interpolation, keyframe animation, and Loop subdivision.
+                The toolkit will allow users to manipulate meshes in real-time and visualize topology changes, serving as a
+                bridge between geometric modeling and animation pipelines.</p>
+            
+            
+            <h2>Problem Description</h2>
+            <p>3D mesh modeling and animation often require complex, computationally intensive techniques to create smooth, 
+                natural deformations. Existing tools either lack intuitive interfaces or produce unrealistic mesh 
+                transformations. This project addresses these challenges by providing an accessible, mathematically rigorous 
+                approach to mesh morphing that preserves geometric integrity while enabling creative geometric transformations.
+            </p>
+            
+            <p>The core challenge lies in developing interpolation methods that:</p>
+            <ul>
+                <li>Maintain mesh topology</li>
+                <li>Preserve vertex relationships</li>
+                <li>Create visually smooth transitions</li>
+                <li>Provide real-time interactive manipulation</li>
+            </ul>
+            
+            <p>We will solve this by extending geometric modeling techniques learned in our homework, specifically 
+                leveraging Bézier curve interpolation, half-edge data structures, and advanced mesh processing algorithms.</p>
+            
+            <h2>Goals and Deliverables</h2>
+            
+            <h3>Baseline Deliverables (Must Accomplish)</h3>
+            <ol>
+                <li>
+                    <p><strong>Basic User Interface</strong></p>
+                    <ul>
+                        <li>Load 3D mesh models</li>
+                        <li>Define keyframe transformations</li>
+                        <li>Generate intermediate mesh states</li>
+                        <li>Export transformed meshes</li>
+                    </ul>
+                </li>
+                <li>
+                    <p><strong>Core Mesh Morphing System</strong></p>
+                    <ul>
+                        <li>Building off of homework 2</li>
+                        <li>Implement Bézier curve-based mesh interpolation</li>
+                        <li>Develop vertex position transformation algorithms</li>
+                        <li>Maintain mesh topology during deformation</li>
+                        <li>Preserve vertex normals and geometric properties</li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <h3>Aspirational Deliverables (Stretch Goals)</h3>
+            <ol>
+                <li>
+                    <p><strong>Advanced Morphing Features</strong></p>
+                    <ul>
+                        <li>Non-linear interpolation techniques</li>
+                        <li>Collision-aware mesh deformation</li>
+                        <li>Procedural animation generation</li>
+                    </ul>
+                </li>
+                <li>
+                    <p><strong>Enhanced User Experience</strong></p>
+                    <ul>
+                        <li>Real-time preview of mesh transformations</li>
+                        <li>Advanced keyframe animation tools</li>
+                        <li>Performance optimization for complex meshes</li>
+                        <li>Support for multiple mesh file formats</li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <h3>Performance Metrics and Analysis Questions</h3>
+            <ul>
+                <li>Measure transformation smoothness using vertex movement metrics</li>
+                <li>Quantify mesh topology preservation</li>
+                <li>Analyze computational efficiency of morphing algorithms</li>
+                <li>Compare different interpolation techniques</li>
+            </ul>
+            
+            <h2>Schedule</h2>
+            
+            <h3>Week 1:</h3>
+            <ul>
+                <li>Begin user interface prototype</li>
+                <li>Adapt basic Bézier curve implementation for mesh vertex interpolation</li>
+                <li>Set up development environment</li>
+            </ul>
+            
+            <h3>Week 2:</h3>
+            <ul>
+                <li>Implement vertex position transformation algorithms</li>
+                <li>Develop topology preservation techniques</li>
+                <li>Create vertex interpolation methods</li>
+            </ul>
+            
+            <h3>Week 3:</h3>
+            <ul>
+                <li>Complete interactive transformation interface</li>
+                <li>Implement keyframe animation system</li>
+                <li>Add visualization capabilities</li>
+                <li>Begin testing on various mesh types</li>
+            </ul>
+            
+            <h3>Week 4:</h3>
+            <ul>
+                <li>Optimize performance</li>
+                <li>Prepare project demonstration models and animations</li>
+                <li>Create documentation and presentation materials</li>
+            </ul>
+            
+            <h2>Resources</h2>
+            
+            <h3>Software</h3>
+            <ul>
+                <li>C++ for programming and core algorithms</li>
+                <li>OpenGL for rendering</li>
+                <li>Blender (not official yet, in the works)</li>
+            </ul>
+            
+            <h3>References</h3>
+            <ul>
+                <li>Our completed homework 2 implementation</li>
+            </ul>
+
+        </div>
+
+    </body>
+</html>
