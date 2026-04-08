@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSE 168 Homework 1</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f9f9f9;
+        color: #222;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 4rem 2rem;
+        line-height: 1.6;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.4rem; }
+
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 3rem; }
+
+    h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 3rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    p { color: #444; font-size: 0.9rem; margin-bottom: 1rem; }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 1rem;
+    }
+
+    .span2 { grid-column: span 2; }
+
+    .img-wrap img { width: 100%; display: block; background: #e8e8e8; }
+
+    .img-wrap span { display: block; font-size: 0.75rem; color: #888; margin-top: 4px; }
+
+    .img-wrap.crop img {
+        height: 160px;
+        object-fit: none;
+        object-position: 20% 40%;
+    }
+
+    .img-wrap.crop-s6 img {
+        height: 120px;
+        object-fit: none;
+        object-position: 70% 60%;
+    }
+
+    @media (max-width: 560px) {
+        .grid { grid-template-columns: 1fr; }
+        .span2 { grid-column: span 1; }
+    }
+</style>
+</head>
+<body>
+    <h1>CSE 168 Homework 1</h1>
+    <p class="subtitle">Raytracer built in C++. Blinn-Phong shading, mirror reflections, BVH acceleration, soft shadows, and antialiasing.</p>
+
+    <h2>Test Scenes</h2>
+    <div class="grid">
+        <div class="img-wrap"><img src="./hw1/testscenes/scene1-camera1.png" alt="Scene 1"><span>Scene 1 Camera 1</span></div>
+        <div class="img-wrap"><img src="./hw1/testscenes/scene1-camera2.png" alt="Scene 1"><span>Scene 1 Camera 2</span></div>
+        <div class="img-wrap"><img src="./hw1/testscenes/scene1-camera3.png" alt="Scene 1"><span>Scene 1 Camera 3</span></div>
+        <div class="img-wrap"><img src="./hw1/testscenes/scene1-camera4.png" alt="Scene 1"><span>Scene 1 Camera 4</span></div>
+        <div class="img-wrap"><img src="./hw1/testscenes/scene2-camera1.png" alt="Scene 2"><span>Scene 2 Camera 1</span></div>
+        <div class="img-wrap"><img src="./hw1/testscenes/scene2-camera2.png" alt="Scene 2"><span>Scene 2 Camera 2</span></div>
+        <div class="img-wrap"><img src="./hw1/testscenes/scene2-camera3.png" alt="Scene 2"><span>Scene 2 Camera 3</span></div>
+        <div class="img-wrap"><img src="./hw1/testscenes/scene3.png" alt="Scene 3"><span>Scene 3</span></div>
+    </div>
+
+    <h2>Submission Renders</h2>
+    <div class="grid">
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene4-ambient.png" alt="Scene 4 ambient"><span>Scene 4 ambient</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene4-emission.png" alt="Scene 4 emission"><span>Scene 4 emission</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene4-diffuse.png" alt="Scene 4 diffuse"><span>Scene 4 diffuse</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene4-specular.png" alt="Scene 4 specular"><span>Scene 4 specular</span></div>
+        <div class="img-wrap span2"><img src="./hw1/submission_renders/scene5.png" alt="Scene 5"><span>Scene 5 sphere field</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene6.png" alt="Scene 6"><span>Scene 6 Cornell box</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene7.png" alt="Scene 7"><span>Scene 7 dragon</span></div>
+    </div>
+
+    <h2>Acceleration structure: BVH</h2>
+    <p>Primitives are organized into a bounding volume hierarchy using longest-axis median splitting, with up to 4 primitives per leaf. Traversal skips subtrees whose bounding box is missed by the ray or is farther than the current closest hit.</p>
+    <p>Scene 7 (dragon, 100,000 triangles) rendered in ~1 second on a MacBook Pro M4.</p>
+
+    <h2>Extra credit: antialiasing</h2>
+    <p>16 randomly sampled rays per pixel are averaged together, removing jagged edges on geometry and silhouette boundaries.</p>
+    <div class="grid">
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene4-ambient.png" alt="Scene 4 ambient no AA"><span>Scene 4 Before: no antialiasing</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene4-ambient-antialiasing.png" alt="Scene 4 ambient antialiased"><span>Scene 4 After: antialiasing</span></div>
+        <div class="img-wrap crop"><img src="./hw1/submission_renders/scene4-ambient.png" alt="No AA zoomed"><span>Scene 4 Before: no antialiasing (zoomed)</span></div>
+        <div class="img-wrap crop"><img src="./hw1/submission_renders/scene4-ambient-antialiasing.png" alt="AA zoomed"><span>Scene 4 After: antialiasing (zoomed)</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene6.png" alt="No AA"><span>Scene 6 Before: no antialiasing</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene6-antialiasing.png" alt="Antialiased"><span>Scene 6 After: antialiasing</span></div>
+        <div class="img-wrap crop-s6"><img src="./hw1/submission_renders/scene6.png" alt="No AA zoomed"><span>Scene 6 Before: no antialiasing (zoomed)</span></div>
+        <div class="img-wrap crop-s6"><img src="./hw1/submission_renders/scene6-antialiasing.png" alt="AA zoomed"><span>Scene 6 After: antialiasing (zoomed)</span></div>
+    </div>
+
+    <h2>Extra credit: soft shadows</h2>
+    <p>Each point light is approximated as a disk area light. 16 stratified samples are distributed across the disk using a jittered grid mapped to polar coordinates, and the light contribution is scaled by the fraction of unoccluded samples.</p>
+    <div class="grid">
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene6.png" alt="Hard shadows"><span>Before: hard shadows</span></div>
+        <div class="img-wrap"><img src="./hw1/submission_renders/scene6-soft.png" alt="Soft shadows"><span>After: soft shadows</span></div>
+    </div>
+
+</body>
+</html>
