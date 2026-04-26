@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSE 168 Homework 3</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f9f9f9;
+        color: #222;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 4rem 2rem;
+        line-height: 1.6;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.4rem; }
+
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 3rem; }
+
+    h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 3rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    p { color: #444; font-size: 0.9rem; margin-bottom: 1rem; }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 1rem;
+    }
+
+    .center { grid-column: 1 / -1; max-width: 50%; margin: 0 auto; }
+
+    .img-wrap img { width: 100%; display: block; background: #e8e8e8; }
+
+    .img-wrap span { display: block; font-size: 0.75rem; color: #888; margin-top: 4px; }
+
+    .img-wrap.crop img {
+        height: 160px;
+        object-fit: none;
+        object-position: 20% 40%;
+    }
+
+    .img-wrap.crop-s6 img {
+        height: 120px;
+        object-fit: none;
+        object-position: 70% 60%;
+    }
+
+    @media (max-width: 560px) {
+        .grid { grid-template-columns: 1fr; }
+        .span2 { grid-column: span 1; }
+    }
+</style>
+</head>
+<body>
+<h1>CSE 168 Homework 3</h1>
+<p class="subtitle">Path tracing with hemisphere sampling, next event estimation, and Russian roulette. Global illumination built on top of the HW2 direct lighting framework.</p>
+
+<h2>Basic Path Tracing: 64 samples per pixel</h2>
+<p>The base path tracer uniformly samples a random direction from the hemisphere at each bounce and traces up to a maximum depth. At 64 samples per pixel the estimator has converged enough to show correct indirect illumination: color bleeding on the walls, soft shadows, and a naturally lit ceiling though some residual noise is still visible in darker regions where paths rarely reach the light.</p>
+<div class="grid">
+    <div class="img-wrap center"><img src="./hw3/cornellSimple.png" alt="Path tracing 64spp"><span>cornellSimple.test: path tracing, 64 spp</span></div>
+</div>
+
+<h2>Next Event Estimation</h2>
+<p>Next event estimation (NEE) splits the rendering equation into direct and indirect components. At each surface intersection, the direct lighting estimator from HW2 explicitly samples the light source, so paths no longer need to stumble onto it by chance. Emission is accumulated only at the first intersection to avoid double-counting. Both images use 64 spp, the noise reduction from NEE is substantial.</p>
+<div class="grid">
+    <div class="img-wrap"><img src="./hw3/cornellSimple.png" alt="Without NEE"><span>Without NEE</span></div>
+    <div class="img-wrap"><img src="./hw3/cornellNEE.png" alt="With NEE"><span>With NEE</span></div>
+</div>
+
+<h2>Russian Roulette</h2>
+<p>Fixed-depth path tracing introduces bias by hard-cutting paths at a maximum depth. Russian roulette instead probabilistically terminates paths at each bounce and boosts surviving paths by 1/(1-q) to maintain an unbiased estimator. Setting D=infinity removes the depth cap entirely: paths continue until Russian roulette kills them, allowing light from arbitrarily deep bounces to contribute. 
+    The result is subtly brighter in multi-bounce regions due to contributions from deeper bounces, though slightly noisier since some paths are terminated early trading the bias of a hard depth cutoff for an unbiased estimator with some added variance.
+</p>
+<div class="grid">
+    <div class="img-wrap"><img src="./hw3/cornellNEE.png" alt="Fixed depth D=5"><span>Fixed depth D=5, 64 spp</span></div>
+    <div class="img-wrap"><img src="./hw3/cornellRR.png" alt="Russian roulette D=infinity"><span>Russian roulette, D=infinity, 64 spp</span></div>
+    <div class="img-wrap center"><img src="./hw3/dragon.png" alt="Dragon scene"><span>Dragon scene</span></div>
+</div>
+
+<h2>Extra credit: Cosine-weighted importance sampling</h2>
+<p>Indirect rays are now sampled proportional to the cosine of the angle with the surface normal. This causes the 
+PDF to cancel the cosine term in the Monte Carlo estimator, reducing the throughput 
+multiplier from 2 * pi * f * cos(theta) to simply pi * f. Samples are concentrated where diffuse surfaces 
+contribute most, reducing noise without introducing bias. Both images use 16 spp with NEE 
+enabled, the noise reduction on the diffuse walls and floor is clearly visible.</p>
+<div class="grid">
+    <div class="img-wrap"><img src="./hw3/cornell_hemisphere.png" alt="Hemisphere sampling"><span>Uniform hemisphere sampling, 16 spp</span></div>
+    <div class="img-wrap"><img src="./hw3/cornell_cosine.png" alt="Cosine sampling"><span>Cosine-weighted sampling, 16 spp</span></div>
+</div>
+
+<h2>Extra credit: Ring light</h2>
+<p>A flat annular (ring-shaped) area light was implemented as an additional emitter type. Points are sampled uniformly over the annulus using inversion sampling, 
+    where the sample radius is drawn as <code>r = sqrt(u * (Ro^2 - Ri^2) + Ri^2)</code> to maintain a correct uniform area distribution. 
+    The flat ring shape produces a distinctive circular highlight on the ceiling and a soft annular shadow pattern that no quad or disk light can replicate.</p>
+<div class="grid">
+    <div class="img-wrap center"><img src="./hw3/cornell_ring_light.png" alt="Ring light"><span>ring light, 64 spp</span></div>
+</div>
+
+<h2>Extra credit: Spot light</h2>
+<p>A point-based spot light was implemented as a directional emitter with a configurable cone angle and smooth quadratic falloff. 
+    Surfaces inside the inner cone receive full illumination while those between the inner and outer cone angles fade gradually to black via a quadratic falloff factor. 
+    Outside the outer cone, surfaces receive no contribution. A narrow cone produces a sharp theatrical pool of light on the floor with hard shadows, while widening it approaches a standard point light.</p>
+<div class="grid">
+    <div class="img-wrap center"><img src="./hw3/cornell_spot_light.png" alt="Spot light"><span>spot light, 512 spp</span></div>
+</div>
+
+</body>
+</html>
