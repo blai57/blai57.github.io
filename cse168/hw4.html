@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSE 168 Homework 4</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f9f9f9;
+        color: #222;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 4rem 2rem;
+        line-height: 1.6;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.4rem; }
+
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 3rem; }
+
+    h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 3rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    p { color: #444; font-size: 0.9rem; margin-bottom: 1rem; }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 1rem;
+    }
+
+    .center { grid-column: 1 / -1; max-width: 50%; margin: 0 auto; }
+
+    .img-wrap img { width: 100%; display: block; background: #e8e8e8; }
+
+    .img-wrap span { display: block; font-size: 0.75rem; color: #888; margin-top: 4px; }
+
+    code {
+        font-family: "SF Mono", "Fira Mono", monospace;
+        font-size: 0.82rem;
+        background: #efefef;
+        padding: 0.1em 0.35em;
+        border-radius: 3px;
+    }
+
+    @media (max-width: 560px) {
+        .grid { grid-template-columns: 1fr; }
+        .span2 { grid-column: span 1; }
+    }
+</style>
+</head>
+<body>
+<h1>CSE 168 Homework 4</h1>
+<p class="subtitle">BRDF importance sampling with cosine-weighted, Phong, and GGX distributions, plus multiple importance sampling to combine BRDF sampling with next event estimation.</p>
+
+<h2>Cosine-Weighted Importance Sampling</h2>
+<p>Rather than sampling directions uniformly over the hemisphere, indirect rays are 
+    drawn proportional to the cosine of the angle with the surface normal. This exactly 
+    cancels the cosine factor in the rendering equation, reducing the Monte Carlo weight 
+    from <code>2π · f · cos(θ)</code> to simply <code>π · f</code>. Because samples are 
+    concentrated near the surface normal where diffuse surfaces contribute the most 
+    energy, variance is reduced without introducing any bias.</p>
+<div class="grid">
+    <div class="img-wrap center"><img src="./hw4/cornellCosine.png" alt="Cosine importance sampling"><span>cornellCosine.test</span></div>
+</div>
+
+<h2>Modified Phong BRDF Importance Sampling</h2>
+<p>The modified Phong BRDF combines a diffuse Lambertian lobe with a specular lobe 
+    proportional to <code>cos^n(alpha)</code>, where alpha is the angle between the 
+    reflected direction and the outgoing ray, and n is the shininess exponent.
+    Importance sampling draws directions directly from this distribution: diffuse and
+    specular lobes are selected stochastically by their relative energy, and within each
+    lobe a direction is sampled analytically using inversion. This concentrates samples
+    in the high-contribution regions of the BRDF, reducing variance on glossy surfaces
+    compared to cosine sampling alone. The Cornell box below uses the BRDF importance 
+    sampler across all bounces.</p>
+<div class="grid">
+    <div class="img-wrap center"><img src="./hw4/cornellBRDF.png" alt="Cornell Phong BRDF IS"><span>cornellBRDF.test: modified Phong BRDF IS</span></div>
+</div>
+
+<h2>GGX Microfacet BRDF and Importance Sampling</h2>
+<p>The GGX microfacet model is a physically-based specular BRDF of the form 
+    <code>(F · G · D) / (4 · wiDotN · woDotN)</code>, where F is the Fresnel term, G is 
+    the Smith shadowing-masking function, and D is the GGX normal distribution. Importance
+    sampling draws half-vectors directly from the GGX distribution, making specular
+    highlights converge rapidly at low sample counts. The roughness parameter
+    <code>alpha</code> controls the width of the lobe: near-zero values produce 
+    mirror-like reflections while <code>alpha</code> approaching 1 gives a broad,
+    diffuse-like spread. Gamma correction (<code>y = x^(1/gamma)</code>, gamma = 2.2) is
+    applied at save time to approximate sRGB output.</p>
+<div class="grid">
+    <div class="img-wrap" style="grid-column: 1 / -1;">
+        <img src="./hw4/ggx.png" alt="GGX BRDF scene"><span>ggx.test: GGX microfacet BRDF IS, 64 spp, gamma = 2.2</span>
+    </div>
+</div>
+
+<h2>Multiple Importance Sampling</h2>
+<p>Next event estimation (NEE) works well on rough surfaces but produces high
+    variance when a near-mirror surface reflects a large area light, because the
+    probability of the NEE ray direction aligning with the narrow BRDF lobe is small.
+    Conversely, BRDF importance sampling handles glossy reflections effortlessly but
+    struggles with small or distant light sources that sampled rays rarely hit. Multiple
+    importance sampling (MIS) combines both techniques at each intersection using the
+    power heuristic with exponent β = 2:</p>
+<p><code>w_i(ω) = pdf_i²(ω) / Σ_k pdf_k²(ω)</code></p>
+<p>One NEE sample and one BRDF sample per light are drawn at every shading point, each weighted by the heuristic. The MIS scene contains four reflective panels with varying roughness and four light sources of varying size, making the tradeoffs of each technique immediately visible. MIS eliminates the failure modes of both methods simultaneously, as confirmed by the dragon scene rendered with full global illumination.</p>
+<div class="grid">
+    <div class="img-wrap"><img src="./hw4/mis.png" alt="MIS scene"><span>mis.test: multiple importance sampling, 32 spp</span></div>
+    <div class="img-wrap"><img src="./hw4/dragon.png" alt="Dragon MIS"><span>dragon.test: multiple importance sampling</span></div>
+</div>
+
+<h2>Extra Credit: Disney Principled BSDF</h2>
+<p>
+    The Disney principled BSDF extends the GGX microfacet framework into a
+    multi-lobe material model. Rather than exposing low-level optical parameters,
+    it exposes artist-friendly controls: <code>metallic</code>, <code>roughness</code>,
+    <code>anisotropic</code>, <code>sheen</code>, <code>clearcoat</code>,
+    <code>transmission</code>, and <code>eta</code> that interpolate smoothly
+    between five physically-based lobes. All lobes are integrated into the path
+    tracer via importance sampling: each lobe is selected stochastically
+    proportional to its energy weight, a direction is sampled from that lobe's
+    distribution, and the PDF is evaluated as the weighted sum across all lobes.
+</p>
+<p>
+    The five lobes are: a <strong>diffuse</strong> lobe with optional subsurface
+    scattering approximation for soft, waxy surfaces; an <strong>anisotropic metal</strong>
+    lobe using GGX with separate alpha values per axis, producing stretched highlights
+    on brushed metal; a <strong>sheen</strong> lobe that adds a retro-reflective rim
+    glow at grazing angles for velvet and cloth; a <strong>clearcoat</strong> lobe
+    using a GTR1 distribution with a fixed IOR of 1.5, producing a sharp specular
+    highlight on top of the base material like car paint; and a <strong>glass</strong>
+    lobe implementing a rough dielectric BSDF with full Fresnel equations and GGX
+    microfacets for both reflection and refraction.
+</p>
+<p>
+    Note: glass surfaces do not appear as transparent as expected because shadow rays cast 
+    from interior hit points are occluded by the sphere's own back face geometry. This is a
+    known limitation of forward path tracing with NEE on transmissive surfaces.
+</p>
+<div class="grid">
+    <div class="img-wrap" style="grid-column: 1 / -1;">
+        <img src="./hw4/disney_showcase.png" alt="Disney BRDF showcase">
+        <span>Left to right: diffuse, metal, sheen, clearcoat, glass, full Disney mix at 512 spp</span>
+    </div>
+</div>
+
+</body>
+</html>
