@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSE 168 Final Project</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f9f9f9;
+      color: #222;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+      line-height: 1.6;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.4rem; }
+
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 3rem; }
+
+    h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 3rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .center { grid-column: 1 / -1; max-width: 50%; margin: 0 auto; }
+
+    p { color: #444; font-size: 0.9rem; margin-bottom: 1rem; }
+
+    ul {
+      color: #444;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      padding-left: 1.4rem;
+    }
+
+    ul li { margin-bottom: 0.3rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 1rem;
+    }
+
+    .img-wrap img {
+      width: 100%;
+      display: block;
+      background: #e8e8e8;
+      border: 1px solid #e0e0e0;
+    }
+
+    .img-wrap span {
+      display: block;
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .img-wrap.crop-s6 img {
+        height: 120px;
+        object-fit: none;
+        object-position: 30% 35%;
+    }
+
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CSE 168 Final Project Milestone: Basic High Quality Rendering</h1>
+
+  <h2>GLSL Shaders &amp; Toon/Cel Shading</h2>
+
+  <p>
+    The fixed-function OpenGL pipeline is replaced entirely with programmable GLSL vertex and
+    fragment shaders. The vertex shader transforms each vertex into world space, computes the
+    correct world-space normal via the transpose-inverse normal matrix, and emits the light-space
+    position needed for shadow mapping, all passed to the fragment stage through an interface
+    block. No fixed-function lighting or texturing is used anywhere in the pipeline.
+  </p>
+
+  <p>
+    As the non-standard shading effect, a toon/cel shading model is implemented in the fragment
+    shader. Rather than evaluating a continuous reflectance model, the diffuse term quantizes
+    the Lambertian N·L value into four discrete brightness bands (full lit, mid-light,
+    mid-shadow, deep shadow), producing the flat regions of color characteristic of cel animation.
+    The specular highlight applies a hard binary threshold on the half-vector term instead of
+    a smooth GGX or Phong lobe, giving a crisp, cartoon-style highlight. A specular size
+    parameter maps to a shininess exponent in the range [4, 128], where larger values produce
+    a tighter highlight. A rim-light term is computed from one minus N·V, raised to a power and
+    thresholded tints the silhouette edges with the surface albedo color, scaled by a
+    controllable rim intensity, reinforcing the stylized look. Fragments whose N·V falls below
+    a threshold are shaded solid black, tracing a silhouette outline in screen space without
+    any additional geometry pass.
+  </p>
+
+  <video controls width="100%" style="border: 1px solid #e0e0e0; margin-top: 1rem;">
+    <source src="./final_project/pt1_video.mp4" type="video/mp4">
+  </video>
+
+  <div class="grid">
+    <div class="img-wrap center">
+      <img src="./final_project/toon_shading.png" alt="Toon shading">
+      <span>Toon/cel shading: quantized diffuse bands, binary specular highlight, rim lighting, and N·V silhouette outline on a vehicle mesh.</span>
+    </div>
+  </div>
+
+  <h2>Shadow Mapping</h2>
+
+  <p>
+    Shadow mapping is implemented as a two-pass algorithm. In the first pass, the scene is
+    rendered from the point light's perspective using a perspective frustum, and only depth
+    values are written to a <code>GL_DEPTH_COMPONENT</code> texture attached to a dedicated
+    framebuffer object. Front-face culling is enabled during this pass to reduce self-shadowing
+    artifacts on back faces.
+  </p>
+
+  <p>
+    In the main shading pass, each fragment's world-space position is transformed into the
+    light's clip space using the same light-space matrix. After the perspective divide, the
+    resulting depth is compared against the value stored in the shadow map. A normal-dependent
+    depth bias is clamped to a minimum of 25% of the base bias value and scaled upward by one
+    minus N·L for surfaces at shallow angles to the light, which is subtracted before the comparison
+    to prevent shadow acne. Fragments outside the light's frustum are treated as fully lit.
+  </p>
+
+  <p>
+    Percentage-closer filtering (PCF) is applied by sampling a (2r+1)*(2r+1) kernel of
+    shadow map texels around the projected coordinate and averaging the per-texel binary
+    comparisons, following the technique introduced by Reeves, Salesin, and Cook (SIGGRAPH 87).
+    The radius r is adjustable at runtime (0 to 4, giving kernels from 1*1 up to 9*9), so the
+    effective softness of shadow edges can be tuned interactively to approximate the penumbra
+    of a finite-area light.
+  </p>
+
+  <div class="grid">
+    <div class="img-wrap">
+      <img src="./final_project/shadows_on.png" alt="Shadows on">
+      <span>Shadow mapping enabled</span>
+    </div>
+    <div class="img-wrap">
+      <img src="./final_project/shadows_off.png" alt="Shadows off">
+      <span>Shadow mapping disabled (fully lit)</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="img-wrap crop-s6">
+      <img src="./final_project/pcf_radius0.png" alt="Hard shadows">
+      <span>Hard shadows with no PCF (radius = 0)</span>
+    </div>
+    <div class="img-wrap crop-s6">
+      <img src="./final_project/pcf_radius4.png" alt="PCF soft shadows">
+      <span>Soft shadow edges with PCF (radius = 4, 9x9 kernel)</span>
+    </div>
+  </div>
+
+  <h2>Next Steps</h2>
+ 
+  <p>
+    Having established GLSL programmable shaders with toon/cel shading and shadow mapping with PCF,
+    the remaining work will focus on completing the core requirements and polishing the pipeline.
+    The most immediate priority will be completing environment mapping. Beyond the core requirements,
+    four add-ons will be completed and documented: Screen-Space Ambient Occlusion (SSAO), which darkens 
+    creases and contact regions using a G-buffer deferred geometry pass, a 64-sample hemisphere kernel, 
+    and a blur pass to smooth the occlusion signal; HDR Bloom with Reinhard tone mapping, which extracts 
+    bright regions into a separate framebuffer, applies a Gaussian blur, and additively composites the result
+    before gamma correction; a Disney Metal BRDF, implementing anisotropic GTR2 distribution with Smith
+    masking-shadowing and Schlick Fresnel with albedo-tinted F0, blended against the base specular lobe
+    via a metallic strength parameter; and a Disney Clearcoat lobe, adding an independent varnish layer
+    using the GTR1 distribution with fixed roughness and a gloss parameter controlling sharpness. The final
+    deliverable will include a video demo showcasing all effects together.
+  </p>
+
+</body>
+</html>
