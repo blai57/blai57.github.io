@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSE 168 Final Project</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f9f9f9;
+      color: #222;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+      line-height: 1.6;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.4rem; }
+
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 3rem; }
+
+    h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 3rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .center { grid-column: 1 / -1; max-width: 50%; margin: 0 auto; }
+
+    p { color: #444; font-size: 0.9rem; margin-bottom: 1rem; }
+
+    ul {
+      color: #444;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      padding-left: 1.4rem;
+    }
+
+    ul li { margin-bottom: 0.3rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 1rem;
+    }
+
+    .img-wrap img {
+      width: 100%;
+      display: block;
+      background: #e8e8e8;
+      border: 1px solid #e0e0e0;
+    }
+
+    .img-wrap span {
+      display: block;
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .img-wrap.crop-s6 img {
+        height: 120px;
+        object-fit: none;
+        object-position: 30% 35%;
+    }
+
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CSE 168 Final Project Milestone: Basic High Quality Rendering</h1>
+
+  <h2>GLSL Shaders &amp; Toon/Cel Shading</h2>
+
+  <p>
+    The fixed-function OpenGL pipeline is replaced entirely with programmable GLSL vertex and
+    fragment shaders. The vertex shader transforms each vertex into world space, computes the
+    correct world-space normal via the transpose-inverse normal matrix, and emits the light-space
+    position needed for shadow mapping, all passed to the fragment stage through an interface
+    block. No fixed-function lighting or texturing is used anywhere in the pipeline.
+  </p>
+
+  <p>
+    As the non-standard shading effect, a toon/cel shading model is implemented in the fragment
+    shader. Rather than evaluating a continuous reflectance model, the diffuse term quantizes
+    the Lambertian N·L value into four discrete brightness bands (full lit, mid-light,
+    mid-shadow, deep shadow), producing the flat regions of color characteristic of cel animation.
+    The specular highlight applies a hard binary threshold on the half-vector term instead of
+    a smooth GGX or Phong lobe, giving a crisp, cartoon-style highlight. A specular size
+    parameter maps to a shininess exponent in the range [4, 128], where larger values produce
+    a tighter highlight. A rim-light term is computed from one minus N·V, raised to a power and
+    thresholded tints the silhouette edges with the surface albedo color, scaled by a
+    controllable rim intensity, reinforcing the stylized look. Fragments whose N·V falls below
+    a threshold are shaded solid black, tracing a silhouette outline in screen space without
+    any additional geometry pass.
+  </p>
+
+  <video controls width="100%" style="border: 1px solid #e0e0e0; margin-top: 1rem;">
+    <source src="./final_project/pt1_video.mp4" type="video/mp4">
+  </video>
+
+  <div class="grid">
+    <div class="img-wrap center">
+      <img src="./final_project/toon_shading.png" alt="Toon shading">
+      <span>Toon/cel shading: quantized diffuse bands, binary specular highlight, rim lighting, and N·V silhouette outline on a vehicle mesh.</span>
+    </div>
+  </div>
+
+  <h2>Shadow Mapping</h2>
+
+  <p>
+    Shadow mapping is implemented as a two-pass algorithm. In the first pass, the scene is
+    rendered from the point light's perspective using a perspective frustum, and only depth
+    values are written to a <code>GL_DEPTH_COMPONENT</code> texture attached to a dedicated
+    framebuffer object. Front-face culling is enabled during this pass to reduce self-shadowing
+    artifacts on back faces.
+  </p>
+
+  <p>
+    In the main shading pass, each fragment's world-space position is transformed into the
+    light's clip space using the same light-space matrix. After the perspective divide, the
+    resulting depth is compared against the value stored in the shadow map. A normal-dependent
+    depth bias is clamped to a minimum of 25% of the base bias value and scaled upward by one
+    minus N·L for surfaces at shallow angles to the light, which is subtracted before the comparison
+    to prevent shadow acne. Fragments outside the light's frustum are treated as fully lit.
+  </p>
+
+  <p>
+    Percentage-closer filtering (PCF) is applied by sampling a (2r+1)*(2r+1) kernel of
+    shadow map texels around the projected coordinate and averaging the per-texel binary
+    comparisons. The radius r is adjustable at runtime (0 to 4, giving kernels from 1*1 up to 9*9),
+    so the effective softness of shadow edges can be tuned interactively to approximate the penumbra
+    of a finite-area light.
+  </p>
+
+  <div class="grid">
+    <div class="img-wrap">
+      <img src="./final_project/shadows_on.png" alt="Shadows on">
+      <span>Shadow mapping enabled</span>
+    </div>
+    <div class="img-wrap">
+      <img src="./final_project/shadows_off.png" alt="Shadows off">
+      <span>Shadow mapping disabled (fully lit)</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="img-wrap crop-s6">
+      <img src="./final_project/pcf_radius0.png" alt="Hard shadows">
+      <span>Hard shadows with no PCF (radius = 0)</span>
+    </div>
+    <div class="img-wrap crop-s6">
+      <img src="./final_project/pcf_radius4.png" alt="PCF soft shadows">
+      <span>Soft shadow edges with PCF (radius = 4, 9x9 kernel)</span>
+    </div>
+  </div>
+
+  <h2>Environment Mapping</h2>
+
+  <p>
+    Environment mapping is implemented using an OpenGL cube map texture loaded from six
+    individual face images (positive and negative X, Y, and Z). The cubemap is bound as a
+    <code>samplerCube</code> uniform and shared between the skybox and the reflective shading
+    pass, so both the background and surface reflections draw from the same image-based light.
+  </p>
+
+  <p>
+    In the fragment shader, the view direction is reflected about the interpolated surface
+    normal using the GLSL built-in <code>reflect</code> function, and the resulting direction
+    is used directly to index into the cube map with a single <code>texture</code> call. The
+    contribution is blended with the local shading result by an adjustable environment strength
+    parameter, allowing the reflective intensity to be tuned from fully matte to fully mirror-like
+    at runtime.
+  </p>
+
+  <p>
+    Beyond mirror reflections, diffuse image-based lighting is implemented by projecting the
+    cubemap into second-order spherical harmonic (SH) coefficients at load time. All six faces are iterated pixel-by-pixel, each
+    texel's radiance is accumulated into nine SH basis functions weighted by the differential
+    solid angle, and the resulting coefficients are uploaded as uniform vectors to the shader.
+    At runtime the irradiance arriving along the surface normal is reconstructed from these
+    coefficients in closed form using the precomputed Lambertian convolution constants, adding
+    physically-motivated, environment-aware ambient shading without any additional texture lookups.
+  </p>
+
+  <p>
+    The skybox is rendered last each frame using a unit cube VAO. The vertex shader strips the
+    translation component from the view matrix and writes <code>gl_Position = pos.xyww</code>
+    so that after the perspective divide the skybox depth is exactly 1.0, allowing it to fill
+    only pixels no geometry has touched without a separate clear.
+  </p>
+
+  <div class="grid">
+    <div class="img-wrap">
+      <img src="./final_project/envmap_on.png" alt="Environment mapping on">
+      <span>Environment Map On</span>
+    </div>
+    <div class="img-wrap">
+      <img src="./final_project/default.png" alt="Environment mapping off">
+      <span>Environment Map Off</span>
+    </div>
+  </div>
+
+  <h2>Add-Ons</h2>
+
+  <h3 style="font-size:0.9rem; font-weight:600; margin: 1.5rem 0 0.5rem;">1. Diffuse IBL via Spherical Harmonics</h3>
+
+  <p>
+    The environment map is convolved with the Lambertian kernel by projecting it into nine
+    second-order SH coefficients on the CPU at startup. In the fragment shader the irradiance
+    at any surface normal is reconstructed with a dot product against the stored coefficients,
+    weighted by the standard Lambertian convolution constants (c1 to c5). The contribution is
+    scaled by a runtime-adjustable diffuse IBL strength and blended with a small constant
+    ambient floor, so surfaces that face away from bright environment regions darken naturally
+    while those facing toward them receive physically consistent indirect illumination.
+  </p>
+
+  <div class="grid">
+    <div class="img-wrap">
+      <img src="./final_project/diffuseibl0.png" alt="Diffuse IBL off">
+      <span>Diffuse IBL disabled</span>
+    </div>
+    <div class="img-wrap">
+      <img src="./final_project/diffuseibl1.png" alt="Diffuse IBL on">
+      <span>Diffuse IBL enabled</span>
+    </div>
+  </div>
+
+  <h3 style="font-size:0.9rem; font-weight:600; margin: 1.5rem 0 0.5rem;">2. Screen-Space Ambient Occlusion (SSAO)</h3>
+
+  <p>
+    SSAO is implemented as a three-pass deferred effect. A geometry pass renders view-space
+    positions and normals into two <code>RGBA16F</code> G-buffer textures. The SSAO pass
+    generates a 64-sample hemisphere kernel biased toward the origin (via a quadratic
+    accelerating interpolant) and rotates each sample into the surface's tangent frame using
+    a TBN matrix constructed from the surface normal and a 4*4 tiled noise texture, breaking
+    the fixed banding that a constant kernel orientation would produce. Each sample is
+    projected back into screen space, its depth is read from the G-buffer position texture,
+    and a range-check smoothstep suppresses false occlusion across large depth discontinuities
+    (silhouette halos). The resulting per-pixel occlusion factor is blurred by a 5*5 box filter
+    to remove the noise tile pattern, and the blurred texture modulates the ambient term in
+    the main shading pass. The effect radius and depth bias are adjustable at runtime.
+  </p>
+
+  <div class="grid">
+    <div class="img-wrap">
+      <img src="./final_project/ssao_on.png" alt="SSAO on">
+      <span>SSAO enabled: creases and cavities darkened</span>
+    </div>
+    <div class="img-wrap">
+      <img src="./final_project/ssao_off.png" alt="SSAO off">
+      <span>SSAO disabled: flat ambient</span>
+    </div>
+  </div>
+
+  <h3 style="font-size:0.9rem; font-weight:600; margin: 1.5rem 0 0.5rem;">3. Bloom &amp; HDR Tone Mapping</h3>
+
+  <p>
+    When bloom is enabled, the main shading pass renders into a floating-point
+    <code>RGBA16F</code> HDR framebuffer. A bright-pass fragment shader extracts pixels whose
+    perceptual luminance exceeds a configurable threshold and scales their
+    contribution proportionally to how far above the threshold they sit. The extracted bright
+    regions are blurred by ten iterations of a separable 9-tap Gaussian filter ping-ponging
+    between two framebuffers, then additively composited onto the HDR scene in a final pass.
+    Exposure-adjusted exponential tone mapping compresses the combined HDR signal to display range,
+    followed by gamma correction to sRGB. The bloom strength, luminance threshold, and exposure
+    are all adjustable at runtime.
+  </p>
+
+  <div class="grid">
+    <div class="img-wrap">
+      <img src="./final_project/bloom.png" alt="Bloom on">
+      <span>Bloom and HDR tone mapping enabled</span>
+    </div>
+    <div class="img-wrap">
+      <img src="./final_project/default.png" alt="Bloom off">
+      <span>Bloom disabled</span>
+    </div>
+  </div>
+
+  <h3 style="font-size:0.9rem; font-weight:600; margin: 1.5rem 0 0.5rem;">4. Disney BRDF: Anisotropic Metal &amp; Clearcoat</h3>
+
+  <p>
+    Two lobes from the Disney principled BRDF are implemented as independent fragment shader
+    functions and composited on top of the base toon or Lambertian shading. The metal lobe
+    uses an anisotropic GGX (GTR2) normal distribution function parameterized by per-axis
+    roughness values derived from a scalar roughness and an anisotropy parameter. The
+    Fresnel term uses the Schlick approximation with the surface albedo as the tinted F0,
+    giving metals their characteristic colored highlights. Shadowing-masking uses the
+    anisotropic Smith G1 function evaluated independently for the incident and outgoing
+    directions. The clearcoat lobe uses a separate GTR1 distribution, a fixed IOR of 1.5
+    (F0 = 0.04), and an isotropic Smith G at a fixed roughness of 0.25, modeling a thin
+    dielectric varnish layer on top of the base material. Both lobes are multiplied by the
+    HDR light color and added to the shading result; the metal blend weight and clearcoat
+    strength are adjustable at runtime.
+  </p>
+
+  <div class="grid">
+    <div class="img-wrap">
+      <img src="./final_project/metal.png" alt="Disney metal on">
+      <span>Disney anisotropic metal specular enabled</span>
+    </div>
+    <div class="img-wrap">
+      <img src="./final_project/clearcoat.png" alt="Clearcoat on">
+      <span>Disney clearcoat lobe enabled</span>
+    </div>
+  </div>
+
+  <h2>Final Video Demo</h2>
+  <p>The video is at 2x speed since GitHub hosted sites only allows a file of max 100MB. Please watch at 0.5x speed.</p>
+  <video controls width="100%" style="border: 1px solid #e0e0e0; margin-top: 1rem;">
+    <source src="./final_project/finalproject_demo.mp4" type="video/mp4">
+  </video>
+
+</body>
+</html>
